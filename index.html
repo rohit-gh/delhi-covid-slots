@@ -1,0 +1,144 @@
+<html>
+<head>
+  <title>Delhi Vaccine Centres</title>
+  <meta name="description" content="Delhi Covid Slots - By Rohit">
+  <meta name="keywords" content="Delhi, Vaccine, Slots">
+  <meta name="author" content="Rohit Gupta">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <!-- Google Fonts -->
+  <!-- <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic"> -->
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans&display=swap" rel="stylesheet">
+  
+  <!-- CSS Reset -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
+  
+  <!-- Milligram CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ==" crossorigin="anonymous"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js" integrity="sha512-bZS47S7sPOxkjU/4Bt0zrhEtWx0y0CRkhEp8IckzK+ltifIIE9EMIMTuT/mEzoIMewUINruDBIR/jJnbguonqQ==" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div class="small-spot">Developed by : <a href="https://www.linkedin.com/in/heyrohit94/">Rohit</a> in public interest</div>
+  <div class="container" id="app">
+    <h1>Vaccine Slots Near Me</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Centre Name</th>
+          <th>Address</th>
+          <th>Age</th>
+          <th>Capacity</th>
+          <th>Pincode</th>
+          <th>Paid/Free</th>
+          <th>Vaccine</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-if="rows.length" v-for="(row,i) in rows" :key="compKey">
+          <td><a :href="row.mapsLink" target="_blank">{{row.name}}</a></td>
+          <!-- <td>{{row.name}}</td> -->
+          <td>{{row.address}}</td>
+          <td>{{`${row.min_age_limit}+`}}</td>
+          <td>{{row.available_capacity}}</td>
+          <td>{{row.pincode}}</td>
+          <td>{{row.fee_type}}</td>
+          <td>{{row.vaccine}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <style>
+    body {
+      font-family: 'Work Sans', sans-serif;
+    }
+    .container{
+      padding-top: 30px;
+    }
+    
+    .small-spot{
+      position: absolute;
+      right: 0;
+      font-size: x-small;
+    }
+  </style>
+  <script>
+    var app = new Vue({
+      el: '#app',
+      data: {
+        pincodes : [
+        110009, // Burari
+        110063, // Paschim Vihar
+        110035, // NW DELHI
+        110026, // Punjabi Bagh
+        110027, // Rajouri Garden
+        110018, // Vikaspuri
+        110058, // Janakpuri
+        110041, // Nangloi
+        110034, // Pitampura
+        110088, // Pitampura
+        110005, // Karol Bagh
+        110055, // Karol Bagh
+        110001, // CP
+        ],
+        rows : [],
+        compKey : `${new Date().getUTCMilliseconds()}`
+      },
+      mounted(){
+        // for(let code = 110001; code< 110099; code++){
+          //   if(this.pincodes.indexOf(code) === -1){
+            //     this.pincodes.push(code);
+            //   }
+            // }
+            this.getSlots();
+          },
+          methods : {
+            async getSlots(){
+              let url = ``;
+              let formattedDate = moment().format('DD-MM-YYYY');
+              if(moment().hour() > 19){
+                formattedDate = moment().add(1,'day').format('DD-MM-YYYY');
+              }
+              for(let pincode of this.pincodes){
+                try{
+                  result = await axios.get(`https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByPin?pincode=${pincode}&date=${formattedDate}`);
+                  if(result.data && result.data.sessions && result.data.sessions.length){
+                    for(let row of result.data.sessions){
+                      let requiredResult = Object.assign({}, row, {mapsLink : this.getMapSearch(row)});
+                      if(requiredResult.min_age_limit === 18){
+                        this.rows.push(requiredResult)
+                      }
+                    } 
+                  }
+                } catch(e){
+                  console.error(`Error while getting info on pincode: ${pincode}`);
+                }
+                this.refreshKey();
+                await this.sleep(500);
+              }
+              
+              this.refreshKey();
+              
+            },
+            
+            refreshKey(){
+              this.key = `${new Date().getUTCMilliseconds()}`
+            },
+            sleep(ms) {
+              return new Promise(resolve => setTimeout(resolve, ms));
+            },
+            getMapSearch(row){
+              let query = row.name.replace(/ /g, '+');
+              let url = `https://www.google.com/maps/search/${query}`;
+              return url;
+            }
+          }
+        })
+        
+        // https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByPin?pincode=110063&date=11-05-2021
+      </script>
+    </body>
+    </html>
